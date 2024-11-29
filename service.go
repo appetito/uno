@@ -28,6 +28,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nuid"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -58,7 +59,7 @@ type (
 		// Stop drains the endpoint subscriptions and marks the service as stopped.
 		Stop() error
 
-		Serve() error
+		ServeForever() error
 
 		// Stopped informs whether [Stop] was executed on the service.
 		Stopped() bool
@@ -400,7 +401,7 @@ func AddService(nc *nats.Conn, config Config) (Service, error) {
 	return svc, nil
 }
 
-func (s *service) Serve() error {
+func (s *service) ServeForever() error {
 	log.Info().Msgf("Service %s is running", s.Info().Name)
 	var es os.Signal
 	sig := make(chan os.Signal, 1)
@@ -412,6 +413,21 @@ func (s *service) Serve() error {
 }
 
 func (s *service) AddEndpoint(name string, handler Handler, opts ...EndpointOpt) {
+	var options endpointOpts
+	for _, opt := range opts {
+		if err := opt(&options); err != nil {
+			log.Fatal().Err(err).Msg("error adding endpoint")
+		}
+	}
+	subject := name
+	if options.subject != "" {
+		subject = options.subject
+	}
+	queueGroup := queueGroupName(options.queueGroup, s.Config.QueueGroup)
+	addEndpoint(s, name, subject, handler, options.metadata, queueGroup)
+}
+
+func AddEndpointTyped[T any](s *service, name string, handler Handler, reqType T, opts ...EndpointOpt) {
 	var options endpointOpts
 	for _, opt := range opts {
 		if err := opt(&options); err != nil {
@@ -682,6 +698,7 @@ func (s *service) addInternalHandler(nc *nats.Conn, verb Verb, kind, id, name st
 // reqHandler invokes the service request handler and modifies service stats
 func (s *service) reqHandler(endpoint *Endpoint, req *request) {
 	start := time.Now()
+	req.SetupLogger()
 	endpoint.Handler.Handle(req)
 	s.m.Lock()
 	endpoint.stats.NumRequests++
@@ -938,4 +955,51 @@ func WithGroupQueueGroup(queueGroup string) GroupOpt {
 	return func(g *groupOpts) {
 		g.queueGroup = queueGroup
 	}
+}
+
+
+func AsStructHandler[T any](h StructHandlerFunc) HandlerFunc {
+	return func(req Request) {
+		d := new(T)
+		err := json.Unmarshal(req.Data(), d)
+		if err != nil {
+			log.Error().Msgf("Error unmarshaling request: %v", err)
+			req.Error("400", "Bad Request", []byte{})
+			return
+		}
+		h(req, d)
+	}
+}
+
+func NewLoggingInterceptor (h HandlerFunc) HandlerFunc {
+	return func(req Request) {
+		defer func() {
+			if r := recover(); r != nil {
+				req.Logger().Error().Msgf("Panic: %v", r)
+				req.Error("500", "Internal Server Error", nil)
+			}
+		}()		
+		req.Logger().
+			Info().
+			Str("data", string(req.Data())).
+			Msg("Handling request")
+
+		h(req)
+
+		if req.HasError(){
+			e := req.GetServiceError()
+			var level zerolog.Level = zerolog.InfoLevel
+			if strings.HasPrefix(e.Code, "5") {
+				level = zerolog.ErrorLevel
+			}
+			req.Logger().WithLevel(level).
+				Str("error", req.GetServiceError().Error()).
+				Msg("Request handled with error")
+		}else{
+			req.Logger().Info().
+				Str("data", string(req.Data())).
+				Msg("Request handled successfully")
+		}
+	}
+ 
 }

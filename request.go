@@ -19,8 +19,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
+
+
+const RequestIDHeader = "uno-request-id"
 
 type (
 	// Handler is used to respond to service requests.
@@ -32,6 +38,7 @@ type (
 	// It allows using a function as a request handler, without having to implement Handle
 	// on a separate type.
 	HandlerFunc func(Request)
+	StructHandlerFunc func(Request, any)
 
 	// Request represents service request available in the service handler.
 	// It exposes methods to respond to the request, as well as
@@ -67,6 +74,11 @@ type (
 		HasError() bool // returns true if error was set
 
 		GetServiceError() *ServiceError
+
+		SetupLogger()
+		Logger() *zerolog.Logger
+		ID() string
+
 	}
 
 	// Headers is a wrapper around [*nats.Header]
@@ -81,6 +93,8 @@ type (
 		respondError error
 		isReplySent bool
 		ServiceError *ServiceError
+		logger zerolog.Logger
+		requestId string
 	}
 
 	ServiceError struct {
@@ -172,9 +186,27 @@ func (r *request) Error(code, description string, data []byte, opts ...RespondOp
 	return nil
 }
 
+
+func (r *request) SetupLogger() {
+	r.logger = log.With().
+		Str("endpoint", r.Subject()).
+		Str("request_id", r.ID()).
+		Logger()
+}
+
+
 func (r *request) HasError() bool { return r.ServiceError != nil }
 func (r *request) IsReplySent() bool { return r.isReplySent }
 func (r *request) GetServiceError() *ServiceError { return r.ServiceError}
+func (r *request) Logger() *zerolog.Logger { return &r.logger}
+
+
+func (r *request) ID() string { 
+	if r.Headers().Get(RequestIDHeader) == "" {
+		r.Headers().Set(RequestIDHeader, uuid.New().String())
+	}
+	return r.Headers().Get(RequestIDHeader)
+}
 
 // WithHeaders can be used to configure response with custom headers.
 func WithHeaders(headers Headers) RespondOpt {
@@ -214,6 +246,10 @@ func (r *request) Reply() string {
 // It is case-sensitive.
 func (h Headers) Get(key string) string {
 	return nats.Header(h).Get(key)
+}
+
+func (h Headers) Set(key, val string) {
+	nats.Header(h).Set(key, val)
 }
 
 // Values returns all values associated with the given key.

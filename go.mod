@@ -3,6 +3,7 @@ module github.com/appetito/uno
 go 1.21.0
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats.go v1.37.0
 	github.com/nats-io/nuid v1.0.1
 	github.com/rs/zerolog v1.33.0
