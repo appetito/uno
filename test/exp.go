@@ -112,16 +112,17 @@ func main() {
 	
 	}))
 
-	root.AddEndpoint("struct_bar", uno.AsStructHandler[Bar](
-		func(r uno.Request, f any) {
-			ff := f.(*Bar)
-			r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", ff)
-			r.RespondJSON(f)
-	
-	}))
+	root.AddEndpoint("struct_bar", uno.AsStructHandler[Bar](BarHandler))
 
 
 	svc.ServeForever()
 	// return nil
 }
 
+func BarHandler(r uno.Request, f any) {
+	ff := f.(*Bar)
+	r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", ff)
+	time.Sleep(2* time.Second)
+	r.RespondJSON(f)
+
+}

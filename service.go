@@ -14,9 +14,11 @@
 package uno
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -30,7 +32,62 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"go.opentelemetry.io/otel"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 )
+
+var requestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "uno_requests_total",
+	Help: "The total number of processed requests",
+},
+[]string{"service", "endpoint", "status"},
+)
+
+var requestsDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Name: "uno_requests_duration_seconds",
+	Help: "The duration of requests in seconds",
+},
+[]string{"service", "endpoint"},
+)
+
+
+var Tracer trace.Tracer
+
+func newExporter(ctx context.Context) (*otlptrace.Exporter, error) {
+	return otlptracegrpc.New(ctx)
+}
+
+func newTraceProvider(exp sdktrace.SpanExporter, serviceName string) *sdktrace.TracerProvider {
+	// Ensure default SDK resources and the required service name are set.
+	r, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName(serviceName),
+		),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(r),
+	)
+}
+
 
 // Notice: Experimental Preview
 //
@@ -402,8 +459,35 @@ func AddService(nc *nats.Conn, config Config) (Service, error) {
 }
 
 func (s *service) ServeForever() error {
+
+	ctx := context.Background()
+
+	exp, err := newExporter(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize exporter")
+	}
+
+	// Create a new tracer provider with a batch span processor and the given exporter.
+	tp := newTraceProvider(exp, s.Name)
+
+	// Handle shutdown properly so nothing leaks.
+	defer func() { _ = tp.Shutdown(ctx) }()
+
+	otel.SetTracerProvider(tp)
+
+	// Finally, set the tracer that can be used for this package.
+	Tracer = tp.Tracer("example.io/package/name")
+	
+
+	log.Info().Msgf("Starting service %s", s.Info().Name)
+	http.Handle("/metrics", promhttp.Handler())
+	go http.ListenAndServe(":2112", nil)
+	
+	log.Info().Msgf("Serving metrics on port %d", 2112)
+
 	log.Info().Msgf("Service %s is running", s.Info().Name)
 	var es os.Signal
+
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	es = <-sig
@@ -480,7 +564,7 @@ func addEndpoint(s *service, name, subject string, handler Handler, metadata map
 		subject,
 		queueGroup,
 		func(m *nats.Msg) {
-			s.reqHandler(endpoint, &request{msg: m})
+			s.reqHandler(endpoint, &request{msg: m, startTime: time.Now(), context: context.Background()})
 		},
 	)
 	if err != nil {
@@ -698,18 +782,33 @@ func (s *service) addInternalHandler(nc *nats.Conn, verb Verb, kind, id, name st
 // reqHandler invokes the service request handler and modifies service stats
 func (s *service) reqHandler(endpoint *Endpoint, req *request) {
 	start := time.Now()
-	req.SetupLogger()
+	req.SetupLogger(endpoint)
+	ctx, span := Tracer.Start(req.Context(), endpoint.Name)
+	req.context = ctx
+	defer span.End()
+
 	endpoint.Handler.Handle(req)
 	s.m.Lock()
 	endpoint.stats.NumRequests++
 	endpoint.stats.ProcessingTime += time.Since(start)
 	avgProcessingTime := endpoint.stats.ProcessingTime.Nanoseconds() / int64(endpoint.stats.NumRequests)
 	endpoint.stats.AverageProcessingTime = time.Duration(avgProcessingTime)
-
+	
 	if req.respondError != nil {
 		endpoint.stats.NumErrors++
 		endpoint.stats.LastError = req.respondError.Error()
+
 	}
+
+	if req.ServiceError != nil {
+		span.RecordError(req.respondError)
+		span.SetStatus(otelcodes.Error, req.ServiceError.Error())
+	}else{
+		span.SetStatus(otelcodes.Ok, "")
+	}
+
+	requestsTotal.With(prometheus.Labels{"service": s.Config.Name, "endpoint": endpoint.Name, "status": req.Status()}).Inc()
+	requestsDuration.With(prometheus.Labels{"service": s.Config.Name, "endpoint": endpoint.Name}).Observe(time.Since(start).Seconds())
 	s.m.Unlock()
 }
 
@@ -998,6 +1097,42 @@ func NewLoggingInterceptor (h HandlerFunc) HandlerFunc {
 		}else{
 			req.Logger().Info().
 				Str("data", string(req.Data())).
+				Dur("duration", time.Since(req.StartTime())).
+				Msg("Request handled successfully")
+		}
+	}
+ 
+}
+
+
+func NewTracingInterceptor (h HandlerFunc) HandlerFunc {
+	return func(req Request) {
+		defer func() {
+			if r := recover(); r != nil {
+				req.Logger().Error().Msgf("Panic: %v", r)
+				req.Error("500", "Internal Server Error", nil)
+			}
+		}()		
+		req.Logger().
+			Info().
+			Str("data", string(req.Data())).
+			Msg("Handling request")
+
+		h(req)
+
+		if req.HasError(){
+			e := req.GetServiceError()
+			var level zerolog.Level = zerolog.InfoLevel
+			if strings.HasPrefix(e.Code, "5") {
+				level = zerolog.ErrorLevel
+			}
+			req.Logger().WithLevel(level).
+				Str("error", req.GetServiceError().Error()).
+				Msg("Request handled with error")
+		}else{
+			req.Logger().Info().
+				Str("data", string(req.Data())).
+				Dur("duration", time.Since(req.StartTime())).
 				Msg("Request handled successfully")
 		}
 	}

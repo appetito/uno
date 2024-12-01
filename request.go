@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -75,9 +76,12 @@ type (
 
 		GetServiceError() *ServiceError
 
-		SetupLogger()
+		SetupLogger(*Endpoint)
 		Logger() *zerolog.Logger
 		ID() string
+		Status() string
+		StartTime() time.Time
+		Context() context.Context
 
 	}
 
@@ -95,6 +99,8 @@ type (
 		ServiceError *ServiceError
 		logger zerolog.Logger
 		requestId string
+		startTime time.Time
+		context context.Context
 	}
 
 	ServiceError struct {
@@ -187,9 +193,9 @@ func (r *request) Error(code, description string, data []byte, opts ...RespondOp
 }
 
 
-func (r *request) SetupLogger() {
+func (r *request) SetupLogger(endpoint *Endpoint) {
 	r.logger = log.With().
-		Str("endpoint", r.Subject()).
+		Str("endpoint", endpoint.Name).
 		Str("request_id", r.ID()).
 		Logger()
 }
@@ -199,6 +205,17 @@ func (r *request) HasError() bool { return r.ServiceError != nil }
 func (r *request) IsReplySent() bool { return r.isReplySent }
 func (r *request) GetServiceError() *ServiceError { return r.ServiceError}
 func (r *request) Logger() *zerolog.Logger { return &r.logger}
+func (r *request) StartTime() time.Time { return r.startTime }
+func (r *request) Status() string { 
+	if r.ServiceError!= nil {
+		return r.ServiceError.Code
+	}
+	return "200"
+}
+
+func (r *request) Context() context.Context {
+	return r.context
+}
 
 
 func (r *request) ID() string { 
