@@ -1096,7 +1096,6 @@ func NewLoggingInterceptor (h HandlerFunc) HandlerFunc {
 				Msg("Request handled with error")
 		}else{
 			req.Logger().Info().
-				Str("data", string(req.Data())).
 				Dur("duration", time.Since(req.StartTime())).
 				Msg("Request handled successfully")
 		}
