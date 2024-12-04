@@ -246,6 +246,9 @@ func (r *request) Data() []byte {
 
 // Headers returns request headers.
 func (r *request) Headers() Headers {
+	if r.msg.Header == nil {
+		r.msg.Header = make(nats.Header)
+	}
 	return Headers(r.msg.Header)
 }
 

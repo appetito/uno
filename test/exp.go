@@ -22,7 +22,7 @@ type Foo struct {
 }
 
 type Bar struct {
-	B string `json:"b"`
+	// B string `json:"b"`
 }
 
 
