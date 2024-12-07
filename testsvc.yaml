@@ -1,0 +1,33 @@
+namespace: test_ns
+name: test-svc
+types:
+- name: Foo
+  fields:
+  - name: ID
+    type: string
+  - name: Foo
+    type: string
+- name: Bar
+  fields:
+  - name: ID
+    type: string
+  - name: Bar
+    type: int64
+- name: GetFooRequest
+  fields:
+  - name: ID
+    type: string
+- name: GetBarRequest
+  fields:
+  - name: ID
+    type: string
+
+endpoints:
+- name: GetFoo
+  description: getFoo description
+  request: GetFooRequest
+  response: Foo
+- name: GetBar
+  description: getBar description
+  request: GetBarRequest
+  response: Bar
