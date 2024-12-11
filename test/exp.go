@@ -80,9 +80,9 @@ func main() {
 		Description: "TestService Controller",
 		Interceptors: []uno.InterceptorFunc{
 			uno.NewPanicInterceptor,
-			uno.NewLoggingInterceptor,
 			uno.NewMetricsInterceptor,
-			uno.NewTracingInterceptor,
+			uno.NewTracingInterceptor, 
+			uno.NewLoggingInterceptor,   
 		},
 	})
 
