@@ -40,7 +40,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	// "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -484,26 +483,19 @@ func AddEndpointTyped[T any](s *service, name string, handler Handler, reqType T
 
 func addEndpoint(s *service, name, subject string, handler Handler, metadata map[string]string, queueGroup string) {
 	if !nameRegexp.MatchString(name) {
-		// return fmt.Errorf("%w: invalid endpoint name", ErrConfigValidation)
 		log.Fatal().Str("name", name).Msg("invalid endpoint name")
 	}
 	if !subjectRegexp.MatchString(subject) {
 		log.Fatal().Str("subject", subject).Msg("invalid endpoint subject")
-		// return fmt.Errorf("%w: invalid endpoint subject", ErrConfigValidation)
 	}
 	if !subjectRegexp.MatchString(queueGroup) {
 		log.Fatal().Str("queueGroup", queueGroup).Msg("invalid endpoint queue group")
-		// return fmt.Errorf("%w: invalid endpoint queue group", ErrConfigValidation)
 	}
 
 	var wrappedHandle HandlerFunc = handler.Handle
 	for _, ic := range s.interceptors{
-		// ic(req)// call interceptors
 		wrappedHandle = ic(wrappedHandle)
 	}
-	// endpoint.Handler.Handle(req)
-	// handler(req)// call service handler
-	// handler.Handle = wrappedHandle
 
 	endpoint := &Endpoint{
 		service: s,
@@ -539,11 +531,6 @@ func addEndpoint(s *service, name, subject string, handler Handler, metadata map
 	s.m.Lock()
 	endpoint.subscription = sub
 	s.endpoints = append(s.endpoints, endpoint)
-	// endpoint.stats = EndpointStats{
-	// 	Name:       name,
-	// 	Subject:    subject,
-	// 	QueueGroup: queueGroup,
-	// }
 	s.m.Unlock()
 }
 
