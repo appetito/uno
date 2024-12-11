@@ -82,6 +82,8 @@ type (
 		Status() string
 		StartTime() time.Time
 		Context() context.Context
+		SetContext(context.Context)
+		Endpoint() *Endpoint
 
 	}
 
@@ -100,6 +102,7 @@ type (
 		logger zerolog.Logger
 		requestId string
 		startTime time.Time
+		endpoint *Endpoint
 		context context.Context
 	}
 
@@ -210,11 +213,20 @@ func (r *request) Status() string {
 	if r.ServiceError!= nil {
 		return r.ServiceError.Code
 	}
-	return "200"
+	return "OK"
 }
+
 
 func (r *request) Context() context.Context {
 	return r.context
+}
+
+func (r *request) SetContext(ctx context.Context) {
+	r.context = ctx
+}
+
+func (r *request) Endpoint() *Endpoint {
+	return r.endpoint
 }
 
 

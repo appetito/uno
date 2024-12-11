@@ -22,8 +22,9 @@ type Foo struct {
 }
 
 type Bar struct {
-	// B string `json:"b"`
-}
+	B string `json:"b"`
+	T uint   `json:"t"`
+} 
 
 
 func (h Handler) Handle(req uno.Request) {
@@ -72,12 +73,16 @@ func main() {
 	log.With().Str("URL", nats.DefaultURL).Logger()
 	// database.Init(cfg)
 
+
 	svc, err := uno.AddService(nc, uno.Config{
 		Name:        "TestService",
 		Version:     "0.0.1",
 		Description: "TestService Controller",
 		Interceptors: []uno.InterceptorFunc{
+			uno.NewPanicInterceptor,
 			uno.NewLoggingInterceptor,
+			uno.NewMetricsInterceptor,
+			uno.NewTracingInterceptor,
 		},
 	})
 
@@ -104,9 +109,8 @@ func main() {
 	}))
 
 	root.AddEndpoint("struct_foo", uno.AsStructHandler[Foo](
-		func(r uno.Request, f interface{}) {
-			ff := f.(*Foo)
-			r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", ff)
+		func(r uno.Request, f Foo) {
+			r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", f)
 			panic("azaza!")
 			r.RespondJSON(f)
 	
@@ -119,10 +123,9 @@ func main() {
 	// return nil
 }
 
-func BarHandler(r uno.Request, f any) {
-	ff := f.(*Bar)
-	r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", ff)
-	time.Sleep(2* time.Second)
-	r.RespondJSON(f)
+func BarHandler(r uno.Request, b Bar) {
+	r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", b)
+	time.Sleep(time.Duration(b.T) * time.Second)
+	r.RespondJSON(b)
 
 }

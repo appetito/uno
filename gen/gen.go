@@ -81,6 +81,30 @@ type (
  }
 {{ end }}
 )
+
+type {{ camel .Name }}Client struct {
+	nc *nats.Conn
+}
+
+func New{{ camel .Name }}Client(nc *nats.Conn) *{{ camel .Name }}Client {
+	return &{{ camel .Name }}Client{nc: nc}
+}
+
+{{ range .Endpoints }}
+	func (c *{{ camel .Name }}Client){{.Name}}(request {{.Request}}) (response {{.Response}}, err error) {
+		data, err := json.Marshal(request)
+		if err != nil {
+			return response, err
+		}
+		reply, err := c.nc.Request({{upper .Name }}_ENDPOINT, data, 1*time.Second)
+		if err != nil {
+			return response, err
+		}
+		err = json.Unmarshal(reply.Data, &response)
+		return response, err
+	}
+{{ end }}
+
 `
 
 
@@ -113,6 +137,7 @@ func Gen(filepath string) {
 		"title": cases.Title,
 		"snake": strcase.SnakeCase,
 		"upper": strcase.UpperSnakeCase,
+		"camel": strcase.UpperCamelCase,
 	}
 
 	// Create a template, add the function map, and parse the text.

@@ -1,5 +1,6 @@
 namespace: test_ns
 name: test-svc
+
 types:
 - name: Foo
   fields:
@@ -21,6 +22,12 @@ types:
   fields:
   - name: ID
     type: string
+- name: GetFooListRequest
+  fields:
+  - name: PageSize
+    type: int
+  - name: PageToken
+    type: string
 
 endpoints:
 - name: GetFoo
@@ -31,3 +38,7 @@ endpoints:
   description: getBar description
   request: GetBarRequest
   response: Bar
+- name: GetFooList
+  description: getFooList description
+  request: GetFooListRequest
+  response: '[]Foo'
