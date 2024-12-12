@@ -113,7 +113,6 @@ func main() {
 			r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", f)
 			panic("azaza!")
 			r.RespondJSON(f)
-	
 	}))
 
 	root.AddEndpoint("struct_bar", uno.AsStructHandler[Bar](BarHandler))
@@ -125,7 +124,12 @@ func main() {
 
 func BarHandler(r uno.Request, b Bar) {
 	r.Logger().Info().Str("data", string(r.Data())).Msgf("Handling Struct: %v", b)
+	dl, _ := r.Context().Deadline()
+	r.Logger().Info().Time("ctx", dl).Time("now", time.Now()).Msg("DL")
 	time.Sleep(time.Duration(b.T) * time.Second)
+	if r.Context().Err() != nil {
+		r.Logger().Err(r.Context().Err()).Msg("Context error")
+		return
+	}
 	r.RespondJSON(b)
-
 }

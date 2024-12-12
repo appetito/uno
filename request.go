@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -28,6 +27,7 @@ import (
 
 
 const RequestIDHeader = "uno-request-id"
+const DeadlineHeader = "uno-deadline"
 
 type (
 	// Handler is used to respond to service requests.
@@ -231,9 +231,9 @@ func (r *request) Endpoint() *Endpoint {
 
 
 func (r *request) ID() string { 
-	if r.Headers().Get(RequestIDHeader) == "" {
-		r.Headers().Set(RequestIDHeader, uuid.New().String())
-	}
+	// if r.Headers().Get(RequestIDHeader) == "" {
+	// 	r.Headers().Set(RequestIDHeader, uuid.New().String())
+	// }
 	return r.Headers().Get(RequestIDHeader)
 }
 

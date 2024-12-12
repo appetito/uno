@@ -25,10 +25,11 @@ func NewPanicInterceptor (h HandlerFunc) HandlerFunc {
 func NewLoggingInterceptor (h HandlerFunc) HandlerFunc {
 	return func(req Request) {
 	
-		req.Logger().Warn().Msg("Log Int")
+		// req.Logger().Debug().Msg("Log Int")
 		req.Logger().
 			Info().
 			Str("data", string(req.Data())).
+			// Str("headers", fmt.Sprintf("%v", req.Headers())).
 			Msg("Handling request")
 
 		h(req)
@@ -47,7 +48,7 @@ func NewLoggingInterceptor (h HandlerFunc) HandlerFunc {
 				Dur("duration", time.Since(req.StartTime())).
 				Msg("Request handled successfully")
 		}
-		req.Logger().Warn().Msg("Log Int after")
+		// req.Logger().Debug().Msg("Log Int after")
 	}
  
 }
@@ -56,7 +57,7 @@ func NewLoggingInterceptor (h HandlerFunc) HandlerFunc {
 func NewTracingInterceptor (h HandlerFunc) HandlerFunc {
 	return func(req Request) {
 
-		req.Logger().Warn().Msg("Trace Int")	
+		// req.Logger().Debug().Msg("Trace Int")	
 		ctx, span := Tracer.Start(req.Context(), req.Endpoint().Name)
 		req.SetContext(ctx)
 		defer span.End()
@@ -72,7 +73,7 @@ func NewTracingInterceptor (h HandlerFunc) HandlerFunc {
 			span.SetStatus(otelcodes.Ok, "")
 		}
 	
-		req.Logger().Warn().Msg("Trace Int after")
+		// req.Logger().Debug().Msg("Trace Int after")
 	}
  
 }
@@ -81,13 +82,13 @@ func NewTracingInterceptor (h HandlerFunc) HandlerFunc {
 func NewMetricsInterceptor (h HandlerFunc) HandlerFunc {
 	return func(req Request) {
 
-		req.Logger().Warn().Msg("Prom Int")	
+		// req.Logger().Debug().Msg("Prom Int")	
 
 		h(req)
-		
+
 		requestsTotal.With(prometheus.Labels{"service": req.Endpoint().service.Name, "endpoint": req.Endpoint().Name, "status": req.Status()}).Inc()
 		requestsDuration.With(prometheus.Labels{"service": req.Endpoint().service.Name, "endpoint": req.Endpoint().Name}).Observe(time.Since(req.StartTime()).Seconds())
-		req.Logger().Warn().Msg("Prom Int after")
+		// req.Logger().Debug().Msg("Prom Int after")
 	}
  
 }

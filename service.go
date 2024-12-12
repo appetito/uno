@@ -22,11 +22,13 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nuid"
 
@@ -512,12 +514,28 @@ func addEndpoint(s *service, name, subject string, handler Handler, metadata map
 		subject,
 		queueGroup,
 		func(m *nats.Msg) {
+			// TODO: request factory?
+			requestID := m.Header.Get(RequestIDHeader)
+			if requestID == "" {
+				requestID = uuid.New().String()
+				m.Header.Set(RequestIDHeader, requestID)
+			}
+			ctx := context.Background()
+			hasDeadline := m.Header.Get(DeadlineHeader) != ""
+			if hasDeadline {
+				deadlineInt, err := strconv.ParseInt(m.Header.Get(DeadlineHeader), 10, 64)
+				if err == nil {
+					deadline := time.UnixMicro(deadlineInt)
+					ctx, _ = context.WithDeadline(ctx, deadline)
+				}
+			}
+			
 			s.reqHandler(
 				&request{
 					msg: m, 
 					startTime: time.Now(),
 					endpoint: endpoint,
-					context: context.Background(),
+					context: ctx,
 				})
 		},
 	)

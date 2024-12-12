@@ -46,7 +46,7 @@ type Service struct {
 }
 
 
-const ApiTpl = `
+const apiTpl = `
 package api
 
 import (
