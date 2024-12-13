@@ -525,15 +525,14 @@ func addEndpoint(s *service, name, subject string, handler Handler, metadata map
 
 			ctx := context.WithValue(context.Background(), ContextKey(RequestIDHeader), requestID)
 		
-			hasDeadline := m.Header.Get(DeadlineHeader) != ""
-			if hasDeadline {
-				deadlineInt, err := strconv.ParseInt(m.Header.Get(DeadlineHeader), 10, 64)
+			if dlHeader := m.Header.Get(DeadlineHeader); dlHeader != "" {
+				deadlineInt, err := strconv.ParseInt(dlHeader, 10, 64)
 				if err == nil {
 					deadline := time.UnixMicro(deadlineInt)
 					ctx, _ = context.WithDeadline(ctx, deadline)
 				}
 			}
-			
+
 			s.reqHandler(
 				&request{
 					msg: m, 

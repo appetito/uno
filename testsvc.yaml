@@ -1,5 +1,6 @@
 namespace: test_ns
 name: test-svc
+package: github.com/appetito/unotest
 
 types:
 - name: Foo
