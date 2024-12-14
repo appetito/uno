@@ -35,13 +35,13 @@ type Field struct {
 }
 
 type Service struct {
-	Namespace   string   `yaml: "namespace"`
-	Name        string   `yaml: "name"`
-	Module      string   `yaml: "module"`
-	Version     string   `yaml: "version"`
-	Description string   `yaml: "description"`
-	Repository  string   `yaml: "repository"`
-	Keywords    []string `yaml: "keywords"`
+	Namespace   string     `yaml:"namespace"`
+	Name        string     `yaml:"name"`
+	Module      string     `yaml:"module"`
+	Version     string     `yaml:"version"`
+	Description string     `yaml:"description"`
+	Repository  string     `yaml:"repository"`
+	Keywords    []string   `yaml:"keywords"`
 	Endpoints   []Endpoint
 	Types       []Type
 }
@@ -123,14 +123,15 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"{{.Module }}/api"
+	"{{.Module }}/config"
 	"{{.Module }}/handlers"
 
 )
 
-func New() *uno.Service {
+func New(cfg *config.Config) *uno.Service {}
 
-	log.Info().Str("URL", nats.DefaultURL).Msg("Connecting to NATS")
-	nc, err := nats.Connect(nats.DefaultURL)
+	log.Info().Str("URL", cfg.NatsServers).Msg("Connecting to NATS")
+	nc, err := nats.Connect(cfg.NatsServers)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to NATS")
 	}
@@ -158,7 +159,7 @@ func New() *uno.Service {
 {{ end }}
 	
 
-	svc.ServeForever()
+	return svc
 
 }
 `
@@ -183,6 +184,47 @@ func {{ .Name }}Handler(r uno.Request, request {{apiref .Request}}){
 	r.RespondJSON(response)
 }
 {{ end }}
+`
+
+const ConfigTpl = `
+package config
+
+import (
+	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/rs/zerolog/log"
+)
+
+type Config struct {
+	NATS_SERVERS string ` + "`" + `env:"NATS_SERVERS" env-default:"localhost:4222"` + "`" + `
+}
+
+
+
+func GetConfig() Config {
+	var cfg Config
+	err := cleanenv.ReadEnv(&cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load config")
+	}
+	return cfg
+}
+`
+
+const CmdMainTpl = `
+package main
+
+import (
+
+	"github.com/appetito/scaleprojects/internal/config"
+	"github.com/appetito/scaleprojects/internal/service"
+	"github.com/rs/zerolog/log"
+)
+
+func main(){
+	cfg := config.GetConfig()
+	svc := service.New(cfg)
+	svc.ServeForever()
+}
 `
 
 func Gen(filepath string) {
