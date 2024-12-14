@@ -107,6 +107,7 @@ type (
 
 		// Info returns the service info.
 		Info() Info
+		Stats() Stats
 
 		// Stop drains the endpoint subscriptions and marks the service as stopped.
 		Stop() error
@@ -176,6 +177,25 @@ type (
 		Subject    string            `json:"subject"`
 		QueueGroup string            `json:"queue_group"`
 		Metadata   map[string]string `json:"metadata"`
+	}
+
+	Stats struct {
+		ServiceIdentity
+		Type      string           `json:"type"`
+		Started   time.Time        `json:"started"`
+		Endpoints []*EndpointStats `json:"endpoints"`
+	}
+
+	EndpointStats struct {
+		Name                  string          `json:"name"`
+		Subject               string          `json:"subject"`
+		QueueGroup            string          `json:"queue_group"`
+		NumRequests           int             `json:"num_requests"`
+		NumErrors             int             `json:"num_errors"`
+		LastError             string          `json:"last_error"`
+		ProcessingTime        time.Duration   `json:"processing_time"`
+		AverageProcessingTime time.Duration   `json:"average_processing_time"`
+		Data                  json.RawMessage `json:"data,omitempty"`
 	}
 
 	// Endpoint manages a service endpoint.
@@ -307,12 +327,14 @@ const (
 // Verbs being used to set up a specific control subject.
 const (
 	PingVerb Verb = iota
+	StatsVerb
 	InfoVerb
 )
 
 const (
 	InfoResponseType  = "io.nats.micro.v1.info_response"
 	PingResponseType  = "io.nats.micro.v1.ping_response"
+	StatsResponseType = "io.nats.micro.v1.stats_response"
 )
 
 var (
@@ -338,6 +360,8 @@ func (s Verb) String() string {
 	switch s {
 	case PingVerb:
 		return "PING"
+	case StatsVerb:
+		return "STATS"
 	case InfoVerb:
 		return "INFO"
 	default:
@@ -402,7 +426,7 @@ func AddService(nc *nats.Conn, config Config) (Service, error) {
 		return func(req Request) {
 			response, _ := json.Marshal(valuef())
 			if err := req.Respond(response); err != nil {
-				if err := req.Error("INTERNAL", fmt.Sprintf("Error handling %s request: %s", verb, err), nil); err != nil && config.ErrorHandler != nil {
+				if err := req.Error("500", fmt.Sprintf("Error handling %s request: %s", verb, err), nil); err != nil && config.ErrorHandler != nil {
 					svc.asyncDispatcher.push(func() { config.ErrorHandler(svc, &NATSError{req.Subject(), err.Error()}) })
 				}
 			}
@@ -411,6 +435,7 @@ func AddService(nc *nats.Conn, config Config) (Service, error) {
 
 	for verb, source := range map[Verb]func() any{
 		InfoVerb:  func() any { return svc.Info() },
+		StatsVerb: func() any { return svc.Stats() },
 		PingVerb:  func() any { return pingResponse },
 	} {
 		handler := handleVerb(verb, source)
@@ -810,6 +835,14 @@ func (s *service) Info() Info {
 	}
 }
 
+func (s *service) Stats() Stats {
+	return Stats{
+		ServiceIdentity: s.serviceIdentity(),
+		Started:         s.started,
+		Type:            StatsResponseType,
+		Endpoints:       make([]*EndpointStats, 0),
+	}
+}
 
 // Stopped informs whether [Stop] was executed on the service.
 func (s *service) Stopped() bool {

@@ -114,21 +114,19 @@ const ServiceTpl = `
 package service
 
 import (
-    "context"
 
     "github.com/appetito/uno"
     "github.com/nats-io/nats.go"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"{{.Module }}/api"
-	"{{.Module }}/config"
-	"{{.Module }}/handlers"
+	"{{.Module }}/internal/config"
+	"{{.Module }}/internal/handlers"
 
 )
 
-func New(cfg *config.Config) *uno.Service {}
+func New(cfg *config.Config) uno.Service {
 
 	log.Info().Str("URL", cfg.NatsServers).Msg("Connecting to NATS")
 	nc, err := nats.Connect(cfg.NatsServers)
@@ -137,7 +135,7 @@ func New(cfg *config.Config) *uno.Service {}
 	}
 
 	svc, err := uno.AddService(nc, uno.Config{
-		Name:        "{{.Name}}",
+		Name:       "{{.Namespace}}" + "_" +  "{{.Name}}",
 		Version:     "{{.Version}}",
 		Description: "{{.Name}}",
 		Interceptors: []uno.InterceptorFunc{
@@ -158,9 +156,7 @@ func New(cfg *config.Config) *uno.Service {}
 	root.AddEndpoint(api.{{upper .Name}}, uno.AsStructHandler[{{apiref .Request}}](handlers.{{.Name}}Handler))
 {{ end }}
 	
-
 	return svc
-
 }
 `
 
@@ -168,10 +164,8 @@ const HandlersTpl = `
 package handlers
 
 import (
-    "context"
 
     "github.com/appetito/uno"
-    "github.com/nats-io/nats.go"
 
 	"{{.Module }}/api"
 
@@ -195,18 +189,18 @@ import (
 )
 
 type Config struct {
-	NATS_SERVERS string ` + "`" + `env:"NATS_SERVERS" env-default:"localhost:4222"` + "`" + `
+	NatsServers string ` + "`" + `env:"NATS_SERVERS" env-default:"localhost:4222"` + "`" + `
 }
 
 
 
-func GetConfig() Config {
+func GetConfig() *Config {
 	var cfg Config
 	err := cleanenv.ReadEnv(&cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load config")
 	}
-	return cfg
+	return &cfg
 }
 `
 
@@ -215,9 +209,8 @@ package main
 
 import (
 
-	"github.com/appetito/scaleprojects/internal/config"
-	"github.com/appetito/scaleprojects/internal/service"
-	"github.com/rs/zerolog/log"
+	"{{.Module }}/internal/config"
+	"{{.Module }}/internal/service"
 )
 
 func main(){
@@ -250,8 +243,10 @@ func Gen(filepath string) {
 	// strcase.SnakeCase("FooBar")
 	CreateGoModFile(defn)
 	CreatePackage("api", "api", ApiTpl, defn)
-	CreatePackage("handlers", "handlers", HandlersTpl, defn)
-	CreatePackage("service", "service", ServiceTpl, defn)
+	CreatePackage("internal/handlers", "handlers", HandlersTpl, defn)
+	CreatePackage("internal/service", "service", ServiceTpl, defn)
+	CreatePackage("internal/config", "config", ConfigTpl, defn)
+	CreatePackage("cmd", "main", CmdMainTpl, defn)
 }
 
 func CreatePackage(dir, name string, tpl string, defn Service){
