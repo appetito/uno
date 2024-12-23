@@ -545,7 +545,7 @@ func addEndpoint(s *service, name, subject string, handler Handler, metadata map
 			requestID := m.Header.Get(RequestIDHeader)
 			if requestID == "" {
 				requestID = uuid.New().String()
-				m.Header.Set(RequestIDHeader, requestID)
+				m.Header.Add(RequestIDHeader, requestID)
 			}
 
 			ctx := context.WithValue(context.Background(), ContextKey(RequestIDHeader), requestID)
