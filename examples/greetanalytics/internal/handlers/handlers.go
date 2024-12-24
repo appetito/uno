@@ -22,7 +22,7 @@ func GetUsersStatsHandler(r uno.Request, request api.GetUsersStatsRequest){
 
 //Get top greeted users
 func TopGreetedUsersHandler(r uno.Request, request api.TopGreetedUsersRequest){
-	var response []api.UserStats
+	response := []api.UserStats{}
 	r.RespondJSON(response)
 }
 
