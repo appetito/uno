@@ -340,6 +340,7 @@ const (
 var (
 	// this regular expression is suggested regexp for semver validation: https://semver.org/
 	semVerRegexp  = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
+	serviceNameRegexp    = regexp.MustCompile(`^[A-Za-z0-9\-_\.]+$`)
 	nameRegexp    = regexp.MustCompile(`^[A-Za-z0-9\-_]+$`)
 	subjectRegexp = regexp.MustCompile(`^[^ >]*[>]?$`)
 )
@@ -617,8 +618,8 @@ func (ac *asyncCallbacksHandler) close() {
 }
 
 func (c *Config) valid() error {
-	if !nameRegexp.MatchString(c.Name) {
-		return fmt.Errorf("%w: service name: name should not be empty and should consist of alphanumerical characters, dashes and underscores", ErrConfigValidation)
+	if !serviceNameRegexp.MatchString(c.Name) {
+		return fmt.Errorf("%w: service name: name should not be empty and should consist of alphanumerical characters, dashes, underscores and dots", ErrConfigValidation)
 	}
 	if !semVerRegexp.MatchString(c.Version) {
 		return fmt.Errorf("%w: version: version should not be empty should match the SemVer format", ErrConfigValidation)

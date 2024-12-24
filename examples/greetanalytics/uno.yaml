@@ -1,0 +1,29 @@
+namespace: example
+name: GreetAnalytics
+module: github.com/appetito/examples/greetanalytics
+
+types:
+- name: UserStats
+  fields:
+  - name: Name
+    type: string
+  - name: GreetCount
+    type: int64
+- name: GetUsersStatsRequest
+  fields:
+  - name: Name
+    type: string
+- name: TopGreetedUsersRequest
+  fields:
+  - name: Count
+    type: int64
+
+endpoints:
+- name: GetUsersStats
+  description: Get user's greet stats
+  request: GetUsersStatsRequest
+  response: UserStats
+- name: TopGreetedUsers
+  description: Get top greeted users
+  request: TopGreetedUsersRequest
+  response: '[]UserStats'

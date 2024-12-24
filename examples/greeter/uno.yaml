@@ -1,0 +1,19 @@
+namespace: example
+name: Greeter
+module: github.com/appetito/examples/greeter
+
+types:
+- name: Greeting
+  fields:
+  - name: Message
+    type: string
+- name: GreetRequest
+  fields:
+  - name: Name
+    type: string
+
+endpoints:
+- name: Greet
+  description: Greet a user, with some additional information
+  request: GreetRequest
+  response: Greeting

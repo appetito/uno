@@ -1,7 +1,9 @@
 package gen
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"strings"
@@ -220,7 +222,7 @@ func main(){
 }
 `
 
-func Gen(filepath string) {
+func GenProject(filepath string) {
 
 	yalmData, err := os.ReadFile(filepath)
 	if err != nil {
@@ -234,24 +236,35 @@ func Gen(filepath string) {
 		log.Fatalf("failed to unmarshal YAML file: %v", err)
 	}
 
-	// empJSON, err := json.MarshalIndent(defn, "", "  ")
-	// if err != nil {
-	//     log.Fatalf(err.Error())
-	//     return
-	// }
-	// fmt.Println(string(empJSON))
-	// strcase.SnakeCase("FooBar")
 	CreateGoModFile(defn)
-	CreatePackage("api", "api", ApiTpl, defn)
-	CreatePackage("internal/handlers", "handlers", HandlersTpl, defn)
-	CreatePackage("internal/service", "service", ServiceTpl, defn)
-	CreatePackage("internal/config", "config", ConfigTpl, defn)
-	CreatePackage("cmd", "main", CmdMainTpl, defn)
+	CreatePackage("api", "api", ApiTpl, defn, false)
+	CreatePackage("internal/handlers", "handlers", HandlersTpl, defn, false)
+	CreatePackage("internal/service", "service", ServiceTpl, defn, false)
+	CreatePackage("internal/config", "config", ConfigTpl, defn, false)
+	CreatePackage("cmd", "main", CmdMainTpl, defn, false)
 }
 
-func CreatePackage(dir, name string, tpl string, defn Service){
+
+func GenAPI(filepath string) {
+
+	yalmData, err := os.ReadFile(filepath)
+	if err != nil {
+		log.Fatalf("failed to read YAML file: %v", err)
+	}
+
+	defn := Service{}
+
+	err = yaml.Unmarshal(yalmData, &defn)
+	if err != nil {
+		log.Fatalf("failed to unmarshal YAML file: %v", err)
+	}
+
+	CreatePackage("api", "api", ApiTpl, defn, true)
+}
+
+
+func CreatePackage(dir, name string, tpl string, defn Service, overwrite bool) {
 	funcMap := template.FuncMap{
-		// The name "title" is what the function will be called in the template text.
 		"title": cases.Title,
 		"snake": strcase.SnakeCase,
 		"upper": strcase.UpperSnakeCase,
@@ -267,6 +280,10 @@ func CreatePackage(dir, name string, tpl string, defn Service){
 
 	pkgDir := dir
 	pkgFilePath := dir + "/" + name + ".go"
+
+	if isDirExist(pkgDir) && !overwrite {
+		log.Fatalf("package %s already exists", name)
+	}
 
 	err = os.MkdirAll(pkgDir, 0755)
 	if err != nil {
@@ -285,10 +302,14 @@ func CreatePackage(dir, name string, tpl string, defn Service){
 	if err != nil {
 		log.Fatalf("%s package gen: execution error: %s", name, err)
 	}
+	log.Println(name + " package created")
 }
 
 
 func CreateGoModFile(defn Service) {
+	if isDirExist("go.mod") {
+		log.Fatalf("go.mod already exists")
+	}
 	// Create a new file
 	f, err := os.Create("go.mod")
 	if err != nil {
@@ -301,6 +322,7 @@ func CreateGoModFile(defn Service) {
 	if err != nil {
 		log.Fatalf("go.mod gen: execution error: %s", err)
 	}
+	log.Println("go.mod created")
 }
 
 
@@ -309,4 +331,12 @@ func AsApiRef(s string) string {
 		return fmt.Sprintf("[]api.%s", s[2:])
 	}
 	return fmt.Sprintf("api.%s", s)
+}
+
+
+func isDirExist(path string) bool {
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
+		return false
+	}
+	return true
 }
