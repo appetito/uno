@@ -6,9 +6,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/appetito/examples/greetanalytics/api"
-	"github.com/appetito/examples/greetanalytics/internal/config"
-	"github.com/appetito/examples/greetanalytics/internal/handlers"
+	"github.com/appetito/uno/examples/greetanalytics/api"
+	"github.com/appetito/uno/examples/greetanalytics/internal/config"
+	"github.com/appetito/uno/examples/greetanalytics/internal/handlers"
 )
 
 func New(cfg *config.Config) uno.Service {

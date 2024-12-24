@@ -1,4 +1,4 @@
-module github.com/appetito/examples/greetanalytics
+module github.com/appetito/uno/examples/greetanalytics
 
 go 1.22.10
 

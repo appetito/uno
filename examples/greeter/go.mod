@@ -1,4 +1,4 @@
-module github.com/appetito/examples/greeter
+module github.com/appetito/uno/examples/greeter
 
 go 1.22.10
 

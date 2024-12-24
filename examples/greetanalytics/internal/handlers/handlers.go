@@ -3,7 +3,7 @@ package handlers
 import (
 	"github.com/appetito/uno"
 
-	"github.com/appetito/examples/greetanalytics/api"
+	"github.com/appetito/uno/examples/greetanalytics/api"
 )
 
 var stats map[string]int64

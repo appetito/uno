@@ -1,6 +1,6 @@
 namespace: example
 name: GreetAnalytics
-module: github.com/appetito/examples/greetanalytics
+module: github.com/appetito/uno/examples/greetanalytics
 
 types:
 - name: UserStats

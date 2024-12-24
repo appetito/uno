@@ -1,17 +1,14 @@
-
 package service
 
 import (
-
-    "github.com/appetito/uno"
-    "github.com/nats-io/nats.go"
+	"github.com/appetito/uno"
+	"github.com/nats-io/nats.go"
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/appetito/examples/greeter/api"
-	"github.com/appetito/examples/greeter/internal/config"
-	"github.com/appetito/examples/greeter/internal/handlers"
-
+	"github.com/appetito/uno/examples/greeter/api"
+	"github.com/appetito/uno/examples/greeter/internal/config"
+	"github.com/appetito/uno/examples/greeter/internal/handlers"
 )
 
 func New(cfg *config.Config) uno.Service {

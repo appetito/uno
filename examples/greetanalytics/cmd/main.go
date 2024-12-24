@@ -1,10 +1,8 @@
-
 package main
 
 import (
-
-	"github.com/appetito/examples/greetanalytics/internal/config"
-	"github.com/appetito/examples/greetanalytics/internal/service"
+	"github.com/appetito/uno/examples/greetanalytics/internal/config"
+	"github.com/appetito/uno/examples/greetanalytics/internal/service"
 )
 
 func main(){

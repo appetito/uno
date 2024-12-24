@@ -1,6 +1,6 @@
 namespace: example
 name: Greeter
-module: github.com/appetito/examples/greeter
+module: github.com/appetito/uno/examples/greeter
 
 types:
 - name: Greeting
