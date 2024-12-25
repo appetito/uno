@@ -42,6 +42,6 @@ func New(cfg *config.Config) uno.Service {
 
 	root.AddEndpoint(api.TOP_GREETED_USERS, uno.AsStructHandler[api.TopGreetedUsersRequest](handlers.TopGreetedUsersHandler))
 
-	
+	handlers.StartConsumer(nc)
 	return svc
 }

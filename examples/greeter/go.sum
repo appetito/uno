@@ -2,6 +2,8 @@ github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/appetito/uno v0.0.0-20241223232319-0331aea3ef7a h1:g32GOCxErC9r18ja8MMj8isU293/aa3tdAHkZrvtHfo=
 github.com/appetito/uno v0.0.0-20241223232319-0331aea3ef7a/go.mod h1:gXBIC41OqL35bzf7+PfS6u+/YbcyvLgolkPDvZfLeLk=
+github.com/appetito/uno/examples/greetanalytics v0.0.0-20241224211245-7adc9657a6d4 h1:u56SNyno3/F0HiJfT8iC/q/u1FVjCe+hEFBd2raqTeg=
+github.com/appetito/uno/examples/greetanalytics v0.0.0-20241224211245-7adc9657a6d4/go.mod h1:eB9olBLuZdk3S/M/WlEOfaLiS7WLd99tEhHpYwFd7uA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=

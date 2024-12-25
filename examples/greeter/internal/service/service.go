@@ -19,9 +19,12 @@ func New(cfg *config.Config) uno.Service {
 		log.Fatal().Err(err).Msg("Failed to connect to NATS")
 	}
 
+	handlers.InitClient(nc) 
+	handlers.InitJetStream(nc)
+
 	svc, err := uno.AddService(nc, uno.Config{
 		Name:       "example" + "_" +  "Greeter",
-		Version:     "",
+		Version:     "0.0.1",
 		Description: "Greeter",
 		Interceptors: []uno.InterceptorFunc{
 			uno.NewPanicInterceptor,
