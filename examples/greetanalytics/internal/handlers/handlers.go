@@ -16,8 +16,6 @@ import (
 var stats map[string]int64
 var mx sync.Mutex
 
-// var c jetstream.Consumer
-
 func StartConsumer(nc *nats.Conn) jetstream.ConsumeContext {
 	stats = make(map[string]int64)
 
@@ -25,7 +23,7 @@ func StartConsumer(nc *nats.Conn) jetstream.ConsumeContext {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to JetStream")
 	}
-	// js = s
+
 	c, err := s.Consumer(context.TODO(), "GREETS", "ga")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create consumer")
@@ -48,7 +46,9 @@ func StartConsumer(nc *nats.Conn) jetstream.ConsumeContext {
 
 //Get user's greet stats
 func GetUsersStatsHandler(r uno.Request, request api.GetUsersStatsRequest){
+	mx.Lock()
 	count := stats[request.Name]
+	mx.Unlock()
 	
 	response := api.UserStats{
 		Name: request.Name,

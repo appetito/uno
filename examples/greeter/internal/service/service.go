@@ -27,7 +27,7 @@ func New(cfg *config.Config) uno.Service {
 		Version:     "0.0.1",
 		Description: "Greeter",
 		Interceptors: []uno.InterceptorFunc{
-			uno.NewPanicInterceptor,
+			// uno.NewPanicInterceptor,
 			uno.NewMetricsInterceptor,
 			uno.NewTracingInterceptor, 
 			uno.NewLoggingInterceptor,   

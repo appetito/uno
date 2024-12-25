@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/appetito/uno"
@@ -39,10 +38,13 @@ func GreetHandler(r uno.Request, request api.GreetRequest){
 	response := api.Greeting{
 		Message: fmt.Sprintf("Hello, %s! This is greeting number %d", request.Name, stats.GreetCount),
 	}
-	r.RespondJSON(response)
-	ack, err := js.Publish(context.Background(), "greets", []byte(request.Name))
+	
+	ack, err := js.Publish(r.Context(), "greets", []byte(request.Name))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to publish greet")
+		r.Error("INTERNAL_ERROR", "Failed to publish greet", []byte(err.Error()))
+	}else{
+		log.Info().Uint64("Ack", ack.Sequence).Msg("Greet published")
+		r.RespondJSON(response)
 	}
-	log.Info().Uint64("Ack", ack.Sequence).Msg("Greet published")
 }
