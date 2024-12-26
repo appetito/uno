@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"strings"
 	"sync"
@@ -11,13 +12,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	analyticsapi "github.com/appetito/uno/examples/greetanalytics/api"
-	//greet api
-	greetapi "github.com/appetito/uno/examples/greeter/api"
-	//nats
-	"github.com/nats-io/nats.go"
-	//uno
 	"github.com/appetito/uno"
+	analyticsapi "github.com/appetito/uno/examples/greetanalytics/api"
+	greetapi "github.com/appetito/uno/examples/greeter/api"
+	"github.com/nats-io/nats.go"
 )
 
 var names = []string{"Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Helen", "Ivan", "Jack"}
@@ -33,8 +31,16 @@ func main(){
 	ac := analyticsapi.NewGreetAnalyticsClient(nc, &uno.UnoClientConfig{})
 	gc := greetapi.NewGreeterClient(nc, &uno.UnoClientConfig{})
 
-	numWorkers := 200
-	numJobs := 100000
+	workersFlag := flag.Int("workers", 10, "Number of workers")
+	greetsFlag := flag.Int("greets", 1000, "Number of greets")
+
+	flag.Parse()
+	numWorkers := *workersFlag
+	numJobs := *greetsFlag
+
+	startTime := time.Now()
+
+	fmt.Printf("Starting %d workers with %d greetings\n", numWorkers, numJobs)
 
 	jobs := make(chan string, numJobs)
 	
@@ -52,12 +58,12 @@ func main(){
 
 	wg.Wait()
 
-	time.Sleep(2 * time.Second)
-
 	resp, err := ac.TopGreetedUsers(context.Background(), analyticsapi.TopGreetedUsersRequest{Count: 10})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get top greeted users")
 	}
+	fmt.Printf("Elapsed: %s\n", time.Now().Sub(startTime))
+	fmt.Printf("Average greets per second: %f\n", float64(numJobs)/time.Now().Sub(startTime).Seconds())
 	fmt.Printf("Top greeted users: %v\n", resp)
 }	
 
