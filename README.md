@@ -66,6 +66,13 @@ Run and call service with nats CLI:
 nats req "hello" 'Hey'
 ```
 
+Uno is compatible with NATS `micro` tool:
+
+```bash
+nats micro list
+nats micro info my-service
+```
+
 ## Features
 
 ### Endpoint Groups

@@ -83,15 +83,15 @@ Average greets per second: 4308.967123
 Top greeted users: [{Bob 1077} {David 1053} {Grace 1020} {Ivan 1001} {Eve 993} {Jack 987} {Alice 987} {Helen 968} {Frank 962} {Charlie 954}]
 ```
 
-## Play with Uno
-
-Both services generated with Uno codegen tool. Services definitions is in the `uno.yaml` files. You can extend/update services API and re-generate code with:
+Uno is a bit compatible with NATS `micro` tool:
 
 ```bash
-uno apigen -f uno.yaml
+nats micro list
+nats micro info example_GreetAnalytics
+nats micro info example_Greeter
 ```
 
-## Getting Started with Examples
+## Play with Uno
 
 These example services showcase Uno's code generation capabilities. Each service is defined in its respective `uno.yaml` file, which serves as the source of truth for the service's API and types.
 
