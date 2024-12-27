@@ -496,20 +496,6 @@ func (s *service) AddEndpoint(name string, handler Handler, opts ...EndpointOpt)
 	addEndpoint(s, name, subject, handler, options.metadata, queueGroup)
 }
 
-func AddEndpointTyped[T any](s *service, name string, handler Handler, reqType T, opts ...EndpointOpt) {
-	var options endpointOpts
-	for _, opt := range opts {
-		if err := opt(&options); err != nil {
-			log.Fatal().Err(err).Msg("error adding endpoint")
-		}
-	}
-	subject := name
-	if options.subject != "" {
-		subject = options.subject
-	}
-	queueGroup := queueGroupName(options.queueGroup, s.Config.QueueGroup)
-	addEndpoint(s, name, subject, handler, options.metadata, queueGroup)
-}
 
 func addEndpoint(s *service, name, subject string, handler Handler, metadata map[string]string, queueGroup string) {
 	if !nameRegexp.MatchString(name) {
