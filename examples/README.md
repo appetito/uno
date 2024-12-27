@@ -44,6 +44,7 @@ Run greeter service:
 
 ```bash
 cd examples/greeter
+go mod tidy
 go run cmd/main.go
 ```
 
@@ -51,6 +52,7 @@ Run greeter analytics service:
 
 ```bash
 cd examples/greetanalytics
+go mod tidy
 go run cmd/main.go
 ```
 
